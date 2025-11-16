@@ -13,12 +13,23 @@ A minimal typing game where words descend down the screen and you type them to c
 
 ## How to Play
 
-1. Open `index.html` in your web browser
-2. Words will begin falling from the top of the screen
-3. Type each word exactly as it appears in the input box at the bottom
-4. Press Enter or continue typing to clear matched words
-5. Don't let any word reach the bottom or it's game over!
-6. Click the settings icon to adjust difficulty
+**Important**: Due to browser security restrictions, you must run a local web server to play the game. You cannot open `index.html` directly with `file://`.
+
+**Start the game:**
+```bash
+# In the typtyp directory, run:
+python3 -m http.server 8000
+
+# Then open your browser to:
+# http://localhost:8000
+```
+
+**Gameplay:**
+1. Words will begin falling from the top of the screen
+2. Type each word exactly as it appears in the input box at the bottom
+3. Press Enter or continue typing to clear matched words
+4. Don't let any word reach the bottom or it's game over!
+5. Click the settings icon (⚙) to adjust difficulty
 
 ## Gameplay and Design
 
