@@ -40,6 +40,10 @@
             transform: scale(1.2);
         }
 
+        .falling-word.highlighted {
+            color: #888;
+        }
+
         #input-container {
             position: fixed;
             bottom: 40px;
@@ -71,6 +75,38 @@
             top: 20px;
             right: 20px;
             font-size: 20px;
+            text-align: right;
+        }
+
+        #stats {
+            position: fixed;
+            top: 50px;
+            right: 20px;
+            font-size: 16px;
+            color: #888;
+        }
+
+        #pause-btn {
+            position: fixed;
+            top: 20px;
+            left: 70px;
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: 2px solid #fff;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        #pause-btn:hover {
+            background: #fff;
+            color: #000;
         }
 
         #game-over {
@@ -268,7 +304,9 @@
 
     <div id="game-container" style="display: none;">
         <button id="settings-btn">⚙</button>
+        <button id="pause-btn">❚❚</button>
         <div id="score">Score: <span id="score-value">0</span></div>
+        <div id="stats"><span id="cpm-value">0</span> chars/min</div>
         <div id="game-over">
             <div>Game Over!</div>
             <div style="font-size: 20px; margin-top: 10px;">Final Score: <span id="final-score">0</span></div>
@@ -329,6 +367,8 @@
         const zenModeCheckbox = document.getElementById('zen-mode-checkbox');
         const loadingEl = document.getElementById('loading');
         const inputContainer = document.getElementById('input-container');
+        const pauseBtn = document.getElementById('pause-btn');
+        const cpmValue = document.getElementById('cpm-value');
 
         // Word lists
         let allWords = [];
@@ -338,9 +378,14 @@
         let fallingWords = [];
         let score = 0;
         let gameActive = false;
+        let isPaused = false;
         let spawnInterval;
         let animationFrame;
         let difficulty = 1;
+
+        // Stats tracking
+        let totalCharsTyped = 0;
+        let gameStartTime = 0;
 
         // Settings
         let speedMultiplier = 1.0;
@@ -393,7 +438,7 @@
                 this.word = word;
                 this.x = Math.random() * (window.innerWidth - 200) + 100;
                 this.y = 0;
-                this.speed = (0.5 + (difficulty * 0.1)) * speedMultiplier;
+                this.baseSpeed = (0.5 + (difficulty * 0.1)) * speedMultiplier;
                 this.element = this.createElement();
             }
 
@@ -408,7 +453,13 @@
             }
 
             update() {
-                this.y += this.speed;
+                // Calculate speed based on screen position
+                // Speed scales with % of screen left to cover, minimum 20%
+                const bottomLimit = window.innerHeight - 100;
+                const percentRemaining = Math.max(0.2, (bottomLimit - this.y) / bottomLimit);
+                const currentSpeed = this.baseSpeed * percentRemaining;
+
+                this.y += currentSpeed;
                 this.element.style.top = this.y + 'px';
             }
 
@@ -440,7 +491,7 @@
         }
 
         function gameLoop() {
-            if (!gameActive) return;
+            if (!gameActive || isPaused) return;
 
             // Update all falling words
             for (let i = fallingWords.length - 1; i >= 0; i--) {
@@ -461,13 +512,40 @@
                 }
             }
 
+            // Update CPM
+            updateCPM();
+
             animationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        function updateCPM() {
+            if (gameStartTime === 0) return;
+            const elapsedMinutes = (Date.now() - gameStartTime) / 60000;
+            if (elapsedMinutes > 0) {
+                const cpm = Math.round(totalCharsTyped / elapsedMinutes);
+                cpmValue.textContent = cpm;
+            }
+        }
+
+        function updateWordHighlights() {
+            const typedWord = wordInput.value.trim().toLowerCase();
+
+            for (const word of fallingWords) {
+                if (typedWord.length > 0 && word.word.toLowerCase().startsWith(typedWord)) {
+                    word.element.classList.add('highlighted');
+                } else {
+                    word.element.classList.remove('highlighted');
+                }
+            }
         }
 
         function checkWord() {
             const typedWord = wordInput.value.trim();
 
-            if (typedWord === '') return;
+            if (typedWord === '') {
+                updateWordHighlights();
+                return;
+            }
 
             // Find matching word (prioritize words that are lower on screen)
             let matchIndex = -1;
@@ -483,6 +561,9 @@
             }
 
             if (matchIndex !== -1) {
+                // Track chars typed
+                totalCharsTyped += typedWord.length;
+
                 // Remove the word
                 fallingWords[matchIndex].remove();
                 fallingWords.splice(matchIndex, 1);
@@ -499,6 +580,9 @@
                 // Clear input
                 wordInput.value = '';
             }
+
+            // Update highlights
+            updateWordHighlights();
         }
 
         function endGame() {
@@ -514,9 +598,14 @@
         function startGame() {
             // Reset game state
             gameActive = true;
+            isPaused = false;
             score = 0;
             difficulty = 1;
+            totalCharsTyped = 0;
+            gameStartTime = Date.now();
             scoreValue.textContent = score;
+            cpmValue.textContent = '0';
+            pauseBtn.textContent = '❚❚';
 
             // Clear existing words
             fallingWords.forEach(word => {
@@ -540,6 +629,24 @@
 
             // Spawn first word immediately
             spawnWord();
+        }
+
+        function togglePause() {
+            if (gameOverScreen.classList.contains('show')) return;
+            if (settingsModal.classList.contains('show')) return;
+
+            isPaused = !isPaused;
+
+            if (isPaused) {
+                pauseBtn.textContent = '▶';
+                clearInterval(spawnInterval);
+                cancelAnimationFrame(animationFrame);
+            } else {
+                pauseBtn.textContent = '❚❚';
+                spawnInterval = setInterval(spawnWord, 2000);
+                gameLoop();
+                wordInput.focus();
+            }
         }
 
         // Settings functions
@@ -590,7 +697,15 @@
             }
         });
 
+        // Global keyboard listener for ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                togglePause();
+            }
+        });
+
         restartBtn.addEventListener('click', startGame);
+        pauseBtn.addEventListener('click', togglePause);
 
         settingsBtn.addEventListener('click', openSettings);
         closeSettingsBtn.addEventListener('click', closeSettings);
