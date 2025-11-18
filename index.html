@@ -443,16 +443,34 @@
             #settings-btn,
             #pause-btn,
             #log-btn {
-                width: 44px;
-                height: 44px;
+                width: 33px;
+                height: 33px;
+                font-size: 14px;
             }
 
             #pause-btn {
-                left: 74px;
+                left: 58px;
             }
 
             #log-btn {
-                left: 128px;
+                left: 96px;
+            }
+
+            #meaning-toast {
+                width: 95%;
+                max-width: none;
+                bottom: 80px;
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+
+            #meaning-toast .hanja {
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+            #meaning-toast .meaning {
+                font-size: 12px;
             }
 
             #log-modal {
@@ -768,7 +786,7 @@
                 div.style.top = this.y + 'px';
                 // Random font size variation (smaller range on mobile)
                 const isMobile = window.innerWidth <= 600;
-                const baseSize = isMobile ? 16 : 20;
+                const baseSize = isMobile ? 12 : 20;
                 const variation = isMobile ? 6 : 8;
                 const fontSize = baseSize + Math.random() * variation;
                 div.style.fontSize = fontSize + 'px';
@@ -940,6 +958,9 @@
             gameActive = false;
             clearInterval(spawnInterval);
             cancelAnimationFrame(animationFrame);
+
+            // Clear the meaning toast
+            meaningToast.classList.remove('show');
 
             finalScoreEl.textContent = score;
             gameOverScreen.classList.add('show');
