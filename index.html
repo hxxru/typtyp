@@ -32,16 +32,20 @@
             position: absolute;
             font-size: 24px;
             white-space: nowrap;
-            transition: opacity 0.3s ease;
+            transition: opacity 1s ease, transform 1s ease;
         }
 
         .falling-word.cleared {
             opacity: 0;
-            transform: scale(1.2);
+            transform: scale(1.5);
         }
 
         .falling-word.highlighted {
             color: #888;
+        }
+
+        .falling-word.failed {
+            color: #ff4444;
         }
 
         #input-container {
@@ -306,7 +310,7 @@
         <button id="settings-btn">⚙</button>
         <button id="pause-btn">❚❚</button>
         <div id="score">Score: <span id="score-value">0</span></div>
-        <div id="stats"><span id="cpm-value">0</span> chars/min</div>
+        <div id="stats"><span id="cps-value">0.00</span> chars/sec</div>
         <div id="game-over">
             <div>Game Over!</div>
             <div style="font-size: 20px; margin-top: 10px;">Final Score: <span id="final-score">0</span></div>
@@ -368,7 +372,7 @@
         const loadingEl = document.getElementById('loading');
         const inputContainer = document.getElementById('input-container');
         const pauseBtn = document.getElementById('pause-btn');
-        const cpmValue = document.getElementById('cpm-value');
+        const cpsValue = document.getElementById('cps-value');
 
         // Word lists
         let allWords = [];
@@ -448,6 +452,9 @@
                 div.textContent = this.word;
                 div.style.left = this.x + 'px';
                 div.style.top = this.y + 'px';
+                // Random font size variation (20-28px)
+                const fontSize = 20 + Math.random() * 8;
+                div.style.fontSize = fontSize + 'px';
                 gameContainer.appendChild(div);
                 return div;
             }
@@ -469,7 +476,7 @@
                     if (this.element.parentNode) {
                         this.element.parentNode.removeChild(this.element);
                     }
-                }, 300);
+                }, 1000);
             }
 
             isOffScreen() {
@@ -506,24 +513,26 @@
                         fallingWords.splice(i, 1);
                     } else {
                         // In normal mode, end the game
+                        // Turn the failed word red
+                        word.element.classList.add('failed');
                         endGame();
                         return;
                     }
                 }
             }
 
-            // Update CPM
-            updateCPM();
+            // Update CPS
+            updateCPS();
 
             animationFrame = requestAnimationFrame(gameLoop);
         }
 
-        function updateCPM() {
+        function updateCPS() {
             if (gameStartTime === 0) return;
-            const elapsedMinutes = (Date.now() - gameStartTime) / 60000;
-            if (elapsedMinutes > 0) {
-                const cpm = Math.round(totalCharsTyped / elapsedMinutes);
-                cpmValue.textContent = cpm;
+            const elapsedSeconds = (Date.now() - gameStartTime) / 1000;
+            if (elapsedSeconds > 0) {
+                const cps = (totalCharsTyped / elapsedSeconds).toFixed(2);
+                cpsValue.textContent = cps;
             }
         }
 
@@ -568,8 +577,8 @@
                 fallingWords[matchIndex].remove();
                 fallingWords.splice(matchIndex, 1);
 
-                // Update score
-                score += 10;
+                // Update score (1 point per character)
+                score += typedWord.length;
                 scoreValue.textContent = score;
 
                 // Increase difficulty every 50 points
@@ -604,7 +613,7 @@
             totalCharsTyped = 0;
             gameStartTime = Date.now();
             scoreValue.textContent = score;
-            cpmValue.textContent = '0';
+            cpsValue.textContent = '0.00';
             pauseBtn.textContent = '❚❚';
 
             // Clear existing words
