@@ -20,10 +20,14 @@
             font-family: 'EB Garamond', serif;
             overflow: hidden;
             height: 100vh;
+            position: fixed;
+            width: 100%;
         }
 
         #game-container {
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100vh;
         }
@@ -588,7 +592,7 @@
         }
 
         function spawnWord() {
-            if (!gameActive) return;
+            if (!gameActive || isPaused) return;
 
             if (filteredWords.length === 0) {
                 console.warn('No words available for current filter');
@@ -831,13 +835,21 @@
         function updateViewportHeight() {
             if (window.visualViewport) {
                 viewportHeight = window.visualViewport.height;
+                // Resize game container to fit visual viewport
+                gameContainer.style.height = viewportHeight + 'px';
+                // Reposition input container above keyboard
+                const keyboardHeight = window.innerHeight - viewportHeight;
+                inputContainer.style.bottom = (keyboardHeight + 20) + 'px';
             } else {
                 viewportHeight = window.innerHeight;
+                gameContainer.style.height = '100vh';
+                inputContainer.style.bottom = '40px';
             }
         }
 
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', updateViewportHeight);
+            window.visualViewport.addEventListener('scroll', updateViewportHeight);
         }
         window.addEventListener('resize', updateViewportHeight);
 
