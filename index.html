@@ -56,6 +56,10 @@
             font-family: "Nanum Myeongjo", serif;
         }
 
+        .korean-text {
+            font-family: "Nanum Myeongjo", serif;
+        }
+
         #input-container {
             position: fixed;
             bottom: 40px;
@@ -700,6 +704,18 @@
                     }
                 } catch (e) {
                     // No metadata file or failed to load - that's fine
+                }
+
+                // Apply Korean font to input and toast if Korean corpus
+                const isKorean = corpusPath.includes('korean_idioms');
+                if (isKorean) {
+                    wordInput.classList.add('korean-text');
+                    meaningToast.classList.add('korean-text');
+                    logContent.classList.add('korean-text');
+                } else {
+                    wordInput.classList.remove('korean-text');
+                    meaningToast.classList.remove('korean-text');
+                    logContent.classList.remove('korean-text');
                 }
 
                 // Hide loading, show game (only on initial load)
