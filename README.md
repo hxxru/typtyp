@@ -8,6 +8,8 @@ A minimal typing game where words descend down the screen and you type them to c
 - **Progressive Difficulty**: Words fall faster as you score higher
 - **Settings Menu**: Customize word speed, corpus preset, and word length
 - **Multiple Word Corpora**: Choose from English adjectives, scientific jargon, or Korean idioms (사자성어)
+- **Learning Mode**: Korean idioms display Hanja and meanings when cleared
+- **Word Log**: Track all spawned words, with rich metadata when available
 - **Score Tracking**: See how long you can survive
 - **Smooth Animations**: Simple fade effects when words are cleared
 
