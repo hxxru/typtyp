@@ -242,6 +242,18 @@
             text-align: center;
         }
 
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
         #loading {
             position: fixed;
             top: 50%;
@@ -286,6 +298,13 @@
             </select>
         </div>
 
+        <div class="setting-item">
+            <div class="checkbox-container">
+                <input type="checkbox" id="zen-mode-checkbox">
+                <label class="setting-label" for="zen-mode-checkbox" style="margin: 0;">Zen Mode (No Game Over)</label>
+            </div>
+        </div>
+
         <button id="close-settings">Close</button>
     </div>
 
@@ -307,6 +326,7 @@
         const speedSlider = document.getElementById('speed-slider');
         const speedValue = document.getElementById('speed-value');
         const lengthSelect = document.getElementById('length-select');
+        const zenModeCheckbox = document.getElementById('zen-mode-checkbox');
         const loadingEl = document.getElementById('loading');
         const inputContainer = document.getElementById('input-container');
 
@@ -325,6 +345,7 @@
         // Settings
         let speedMultiplier = 1.0;
         let wordLengthFilter = 'any';
+        let zenMode = false;
 
         // Load and filter words
         async function loadWords() {
@@ -333,7 +354,7 @@
                 const text = await response.text();
                 const words = text.split('\n')
                     .map(w => w.trim())
-                    .filter(w => w.length > 0 && !w.includes('-')); // Filter out empty and hyphenated words
+                    .filter(w => w.length > 0 && !w.includes('-') && !w.includes(' ') && w === w.toLowerCase()); // Filter out empty, hyphenated, spaces, and capital letters
 
                 allWords = words;
                 updateFilteredWords();
@@ -428,8 +449,15 @@
 
                 // Check if word reached bottom
                 if (word.isOffScreen()) {
-                    endGame();
-                    return;
+                    if (zenMode) {
+                        // In zen mode, just remove the word
+                        word.remove();
+                        fallingWords.splice(i, 1);
+                    } else {
+                        // In normal mode, end the game
+                        endGame();
+                        return;
+                    }
                 }
             }
 
@@ -549,6 +577,10 @@
             updateFilteredWords();
         }
 
+        function updateZenMode() {
+            zenMode = zenModeCheckbox.checked;
+        }
+
         // Event listeners
         wordInput.addEventListener('input', checkWord);
 
@@ -566,6 +598,7 @@
 
         speedSlider.addEventListener('input', updateSpeedSetting);
         lengthSelect.addEventListener('change', updateLengthSetting);
+        zenModeCheckbox.addEventListener('change', updateZenMode);
 
         // Load words and start the game
         loadWords();
