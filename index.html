@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>typtyp</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -301,6 +301,100 @@
             transform: translate(-50%, -50%);
             font-size: 24px;
         }
+
+        /* Mobile styles */
+        @media (max-width: 600px) {
+            #settings-btn,
+            #pause-btn {
+                width: 44px;
+                height: 44px;
+            }
+
+            #pause-btn {
+                left: 74px;
+            }
+
+            #score {
+                font-size: 16px;
+                top: 15px;
+                right: 15px;
+            }
+
+            #stats {
+                font-size: 14px;
+                top: 40px;
+                right: 15px;
+            }
+
+            #settings-modal {
+                min-width: auto;
+                width: 90%;
+                max-width: 400px;
+                padding: 30px 20px;
+            }
+
+            .settings-title {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+
+            .setting-item {
+                margin-bottom: 20px;
+            }
+
+            .setting-label {
+                font-size: 16px;
+            }
+
+            #word-input {
+                font-size: 24px;
+            }
+
+            #input-container {
+                width: 90%;
+                bottom: 20px;
+            }
+
+            #game-over {
+                font-size: 28px;
+            }
+
+            #restart-btn {
+                padding: 12px 24px;
+                font-size: 18px;
+            }
+
+            .falling-word {
+                font-size: 20px;
+            }
+
+            input[type="range"]::-webkit-slider-thumb {
+                width: 28px;
+                height: 28px;
+            }
+
+            input[type="range"]::-moz-range-thumb {
+                width: 28px;
+                height: 28px;
+            }
+
+            select {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            input[type="checkbox"] {
+                width: 24px;
+                height: 24px;
+            }
+        }
+
+        /* Prevent zoom on input focus for iOS */
+        @media (max-width: 600px) {
+            input[type="text"] {
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -351,7 +445,7 @@
     </div>
 
     <div id="input-container" style="display: none;">
-        <input type="text" id="word-input" placeholder="type here..." autocomplete="off" autofocus>
+        <input type="text" id="word-input" placeholder="type here..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>
     </div>
 
     <script>
@@ -395,6 +489,9 @@
         let speedMultiplier = 1.0;
         let wordLengthFilter = 'any';
         let zenMode = false;
+
+        // Mobile viewport tracking
+        let viewportHeight = window.innerHeight;
 
         // Load and filter words
         async function loadWords() {
@@ -440,7 +537,10 @@
         class FallingWord {
             constructor(word) {
                 this.word = word;
-                this.x = Math.random() * (window.innerWidth - 200) + 100;
+                // Adjust spawn range for screen width
+                const padding = Math.min(100, window.innerWidth * 0.15);
+                const maxX = window.innerWidth - padding * 2;
+                this.x = Math.random() * maxX + padding;
                 this.y = 0;
                 this.baseSpeed = (0.5 + (difficulty * 0.1)) * speedMultiplier;
                 this.element = this.createElement();
@@ -452,8 +552,11 @@
                 div.textContent = this.word;
                 div.style.left = this.x + 'px';
                 div.style.top = this.y + 'px';
-                // Random font size variation (20-28px)
-                const fontSize = 20 + Math.random() * 8;
+                // Random font size variation (smaller range on mobile)
+                const isMobile = window.innerWidth <= 600;
+                const baseSize = isMobile ? 16 : 20;
+                const variation = isMobile ? 6 : 8;
+                const fontSize = baseSize + Math.random() * variation;
                 div.style.fontSize = fontSize + 'px';
                 gameContainer.appendChild(div);
                 return div;
@@ -462,7 +565,7 @@
             update() {
                 // Calculate speed based on screen position
                 // Speed scales with % of screen left to cover, minimum 20%
-                const bottomLimit = window.innerHeight - 100;
+                const bottomLimit = viewportHeight - 100;
                 const percentRemaining = Math.max(0.2, (bottomLimit - this.y) / bottomLimit);
                 const currentSpeed = this.baseSpeed * percentRemaining;
 
@@ -480,7 +583,7 @@
             }
 
             isOffScreen() {
-                return this.y > window.innerHeight - 100;
+                return this.y > viewportHeight - 100;
             }
         }
 
@@ -723,6 +826,20 @@
         speedSlider.addEventListener('input', updateSpeedSetting);
         lengthSelect.addEventListener('change', updateLengthSetting);
         zenModeCheckbox.addEventListener('change', updateZenMode);
+
+        // Handle viewport changes (mobile keyboard)
+        function updateViewportHeight() {
+            if (window.visualViewport) {
+                viewportHeight = window.visualViewport.height;
+            } else {
+                viewportHeight = window.innerHeight;
+            }
+        }
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateViewportHeight);
+        }
+        window.addEventListener('resize', updateViewportHeight);
 
         // Load words and start the game
         loadWords();
