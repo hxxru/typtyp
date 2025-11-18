@@ -672,10 +672,6 @@
         class FallingWord {
             constructor(word) {
                 this.word = word;
-                // Adjust spawn range for screen width
-                const padding = Math.min(100, window.innerWidth * 0.15);
-                const maxX = window.innerWidth - padding * 2;
-                this.x = Math.random() * maxX + padding;
                 this.y = 0;
                 this.baseSpeed = (0.5 + (difficulty * 0.1)) * speedMultiplier;
                 this.element = this.createElement();
@@ -689,7 +685,6 @@
                     div.classList.add('korean');
                 }
                 div.textContent = this.word;
-                div.style.left = this.x + 'px';
                 div.style.top = this.y + 'px';
                 // Random font size variation (smaller range on mobile)
                 const isMobile = window.innerWidth <= 600;
@@ -697,7 +692,17 @@
                 const variation = isMobile ? 6 : 8;
                 const fontSize = baseSize + Math.random() * variation;
                 div.style.fontSize = fontSize + 'px';
+
+                // Add to DOM first to measure width
                 gameContainer.appendChild(div);
+
+                // Calculate X position ensuring word fits on screen
+                const wordWidth = div.offsetWidth;
+                const padding = Math.min(20, window.innerWidth * 0.05);
+                const maxX = window.innerWidth - wordWidth - padding;
+                this.x = Math.random() * Math.max(0, maxX - padding) + padding;
+                div.style.left = this.x + 'px';
+
                 return div;
             }
 
