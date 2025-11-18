@@ -1,5 +1,20 @@
 # Development Log
 
+## 2025-11-18
+
+### Corpus Preset Switching
+- Added support for multiple word corpus presets
+- New corpora directory structure with three word lists:
+  - `eng_adjectives.txt` - 21,000+ English adjectives (original corpus)
+  - `scientific_jargon.txt` - 3,000+ scientific terms
+  - `사자성어.txt` - 2,300+ Korean four-character idioms
+- Implemented corpus selector dropdown in settings menu
+- Dynamic corpus loading without page refresh
+- Corpus-specific filtering:
+  - English: filters hyphens, spaces, capitals
+  - Scientific: allows hyphens, filters spaces and capitals
+  - Korean: no filtering applied
+
 ## 2025-11-16
 
 ### Initial Implementation
