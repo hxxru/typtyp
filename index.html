@@ -429,6 +429,15 @@
         </div>
 
         <div class="setting-item">
+            <label class="setting-label">Word Corpus</label>
+            <select id="corpus-select">
+                <option value="corpora/eng_adjectives.txt">English Adjectives</option>
+                <option value="corpora/scientific_jargon.txt">Scientific Jargon</option>
+                <option value="corpora/사자성어.txt">사자성어 (Korean Idioms)</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
             <label class="setting-label">Word Length</label>
             <select id="length-select">
                 <option value="any">Any</option>
@@ -465,6 +474,7 @@
         const closeSettingsBtn = document.getElementById('close-settings');
         const speedSlider = document.getElementById('speed-slider');
         const speedValue = document.getElementById('speed-value');
+        const corpusSelect = document.getElementById('corpus-select');
         const lengthSelect = document.getElementById('length-select');
         const zenModeCheckbox = document.getElementById('zen-mode-checkbox');
         const loadingEl = document.getElementById('loading');
@@ -491,6 +501,7 @@
 
         // Settings
         let speedMultiplier = 1.0;
+        let corpusPath = 'corpora/eng_adjectives.txt';
         let wordLengthFilter = 'any';
         let zenMode = false;
 
@@ -498,24 +509,33 @@
         let viewportHeight = window.innerHeight;
 
         // Load and filter words
-        async function loadWords() {
+        async function loadWords(isInitial = false) {
             try {
-                const response = await fetch('corpus.txt');
+                const response = await fetch(corpusPath);
                 const text = await response.text();
-                const words = text.split('\n')
-                    .map(w => w.trim())
-                    .filter(w => w.length > 0 && !w.includes('-') && !w.includes(' ') && w === w.toLowerCase()); // Filter out empty, hyphenated, spaces, and capital letters
+
+                // Apply different filters based on corpus type
+                let words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
+
+                if (corpusPath.includes('eng_adjectives')) {
+                    // English: filter hyphenated, spaces, and capitals
+                    words = words.filter(w => !w.includes('-') && !w.includes(' ') && w === w.toLowerCase());
+                } else if (corpusPath.includes('scientific_jargon')) {
+                    // Scientific: keep hyphens, filter spaces and capitals
+                    words = words.filter(w => !w.includes(' ') && w === w.toLowerCase());
+                }
+                // Korean (사자성어): no additional filtering needed
 
                 allWords = words;
                 updateFilteredWords();
 
-                // Hide loading, show game
-                loadingEl.style.display = 'none';
-                gameContainer.style.display = 'block';
-                inputContainer.style.display = 'block';
-
-                // Start the game
-                startGame();
+                // Hide loading, show game (only on initial load)
+                if (isInitial) {
+                    loadingEl.style.display = 'none';
+                    gameContainer.style.display = 'block';
+                    inputContainer.style.display = 'block';
+                    startGame();
+                }
             } catch (error) {
                 console.error('Error loading words:', error);
                 loadingEl.textContent = 'Error loading words. Please refresh.';
@@ -804,6 +824,11 @@
             zenMode = zenModeCheckbox.checked;
         }
 
+        function updateCorpusSetting() {
+            corpusPath = corpusSelect.value;
+            loadWords();
+        }
+
         // Event listeners
         wordInput.addEventListener('input', checkWord);
 
@@ -828,6 +853,7 @@
         settingsOverlay.addEventListener('click', closeSettings);
 
         speedSlider.addEventListener('input', updateSpeedSetting);
+        corpusSelect.addEventListener('change', updateCorpusSetting);
         lengthSelect.addEventListener('change', updateLengthSetting);
         zenModeCheckbox.addEventListener('change', updateZenMode);
 
@@ -854,7 +880,7 @@
         window.addEventListener('resize', updateViewportHeight);
 
         // Load words and start the game
-        loadWords();
+        loadWords(true);
     </script>
 </body>
 </html>
