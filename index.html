@@ -6,7 +6,7 @@
     <title>typtyp</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400&family=Nanum+Myeongjo&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -50,6 +50,10 @@
 
         .falling-word.failed {
             color: #ff4444;
+        }
+
+        .falling-word.korean {
+            font-family: "Nanum Myeongjo", serif;
         }
 
         #input-container {
@@ -514,17 +518,8 @@
                 const response = await fetch(corpusPath);
                 const text = await response.text();
 
-                // Apply different filters based on corpus type
-                let words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
-
-                if (corpusPath.includes('eng_adjectives')) {
-                    // English: filter hyphenated, spaces, and capitals
-                    words = words.filter(w => !w.includes('-') && !w.includes(' ') && w === w.toLowerCase());
-                } else if (corpusPath.includes('scientific_jargon')) {
-                    // Scientific: keep hyphens, filter spaces and capitals
-                    words = words.filter(w => !w.includes(' ') && w === w.toLowerCase());
-                }
-                // Korean (사자성어): no additional filtering needed
+                // Parse words from corpus file
+                const words = text.split('\n').map(w => w.trim()).filter(w => w.length > 0);
 
                 allWords = words;
                 updateFilteredWords();
@@ -573,6 +568,10 @@
             createElement() {
                 const div = document.createElement('div');
                 div.className = 'falling-word';
+                // Apply Korean font if Korean corpus is selected
+                if (corpusPath.includes('korean_idioms')) {
+                    div.classList.add('korean');
+                }
                 div.textContent = this.word;
                 div.style.left = this.x + 'px';
                 div.style.top = this.y + 'px';
