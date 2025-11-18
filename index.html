@@ -56,7 +56,9 @@
             font-family: "Nanum Myeongjo", serif;
         }
 
-        .korean-text {
+        #word-input.korean-text,
+        #meaning-toast.korean-text,
+        #log-content.korean-text {
             font-family: "Nanum Myeongjo", serif;
         }
 
@@ -578,7 +580,7 @@
             <select id="corpus-select">
                 <option value="corpora/eng_adjectives.txt">English Adjectives</option>
                 <option value="corpora/scientific_jargon.txt">Scientific Jargon</option>
-                <option value="corpora/korean_idioms.txt">사자성어 (Korean Idioms)</option>
+                <option value="corpora/korean_idioms.txt" selected>사자성어 (Korean Idioms)</option>
             </select>
         </div>
 
@@ -660,7 +662,7 @@
 
         // Settings
         let speedMultiplier = 1.0;
-        let corpusPath = 'corpora/eng_adjectives.txt';
+        let corpusPath = 'corpora/korean_idioms.txt';
         let wordLengthFilter = 'any';
         let zenMode = false;
 
@@ -874,7 +876,6 @@
             }
         }
 
-        let toastTimeout;
         function showMeaningToast(word) {
             const metadata = wordMetadataMap[word];
             if (!metadata) return;
@@ -884,11 +885,6 @@
                 <div class="meaning">${metadata.meaning}</div>
             `;
             meaningToast.classList.add('show');
-
-            clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => {
-                meaningToast.classList.remove('show');
-            }, 3000);
         }
 
         function checkWord() {
