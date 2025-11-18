@@ -400,6 +400,38 @@
             font-size: 24px;
         }
 
+        #meaning-toast {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #444;
+            padding: 15px 25px;
+            max-width: 90%;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.6;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #meaning-toast.show {
+            opacity: 1;
+        }
+
+        #meaning-toast .hanja {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        #meaning-toast .meaning {
+            color: #aaa;
+            font-size: 14px;
+        }
+
         /* Mobile styles */
         @media (max-width: 600px) {
             #settings-btn,
@@ -522,6 +554,7 @@
             <button id="view-log-btn">View Log</button>
             <button id="restart-btn">Restart</button>
         </div>
+        <div id="meaning-toast"></div>
     </div>
 
     <div class="settings-overlay"></div>
@@ -600,11 +633,13 @@
         const logContent = document.getElementById('log-content');
         const closeLogBtn = document.getElementById('close-log');
         const viewLogBtn = document.getElementById('view-log-btn');
+        const meaningToast = document.getElementById('meaning-toast');
 
         // Word lists
         let allWords = [];
         let filteredWords = [];
         let wordLog = [];
+        let wordMetadataMap = {};
 
         // Game state
         let fallingWords = [];
@@ -639,6 +674,33 @@
 
                 allWords = words;
                 updateFilteredWords();
+
+                // Try to load corresponding JSON metadata
+                wordMetadataMap = {};
+                const jsonPath = corpusPath.replace('.txt', '.json');
+                try {
+                    const jsonResponse = await fetch(jsonPath);
+                    if (jsonResponse.ok) {
+                        const jsonData = await jsonResponse.json();
+                        // Build lookup map from Korean word to metadata
+                        if (jsonData.idioms) {
+                            jsonData.idioms.forEach(item => {
+                                // Parse "呵呵大笑 (가가대소)" format
+                                const match = item.Q.match(/^(.+?)\s*\((.+?)\)$/);
+                                if (match) {
+                                    const hanja = match[1];
+                                    const korean = match[2];
+                                    wordMetadataMap[korean] = {
+                                        hanja: hanja,
+                                        meaning: item.A
+                                    };
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    // No metadata file or failed to load - that's fine
+                }
 
                 // Hide loading, show game (only on initial load)
                 if (isInitial) {
@@ -796,6 +858,23 @@
             }
         }
 
+        let toastTimeout;
+        function showMeaningToast(word) {
+            const metadata = wordMetadataMap[word];
+            if (!metadata) return;
+
+            meaningToast.innerHTML = `
+                <div class="hanja">${metadata.hanja} (${word})</div>
+                <div class="meaning">${metadata.meaning}</div>
+            `;
+            meaningToast.classList.add('show');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                meaningToast.classList.remove('show');
+            }, 3000);
+        }
+
         function checkWord() {
             const typedWord = wordInput.value.trim();
 
@@ -824,6 +903,9 @@
                 // Remove the word
                 fallingWords[matchIndex].remove();
                 fallingWords.splice(matchIndex, 1);
+
+                // Show meaning toast if metadata exists
+                showMeaningToast(typedWord);
 
                 // Update score (1 point per character)
                 score += typedWord.length;
@@ -963,9 +1045,26 @@
             }
 
             // Render log content
-            logContent.innerHTML = wordLog.length > 0
-                ? wordLog.join(' &middot; ')
-                : '';
+            if (wordLog.length > 0) {
+                // Check if we have metadata for any words
+                const hasMetadata = wordLog.some(w => wordMetadataMap[w]);
+
+                if (hasMetadata) {
+                    // Rich format with meanings
+                    logContent.innerHTML = wordLog.map(word => {
+                        const meta = wordMetadataMap[word];
+                        if (meta) {
+                            return `<div style="margin-bottom: 12px;"><strong>${meta.hanja}</strong> (${word})<br><span style="color: #888; font-size: 14px;">${meta.meaning}</span></div>`;
+                        }
+                        return `<div style="margin-bottom: 8px;">${word}</div>`;
+                    }).join('');
+                } else {
+                    // Simple format
+                    logContent.innerHTML = wordLog.join(' &middot; ');
+                }
+            } else {
+                logContent.innerHTML = '';
+            }
 
             settingsOverlay.classList.add('show');
             logModal.classList.add('show');
