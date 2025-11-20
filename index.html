@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="typtyp">
     <title>typtyp</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400&family=Nanum+Myeongjo&display=swap" rel="stylesheet">
@@ -102,6 +107,14 @@
             right: 20px;
             font-size: 16px;
             color: #888;
+        }
+
+        #high-score {
+            position: fixed;
+            top: 75px;
+            right: 20px;
+            font-size: 14px;
+            color: #666;
         }
 
         #pause-btn {
@@ -492,6 +505,12 @@
                 right: 15px;
             }
 
+            #high-score {
+                font-size: 12px;
+                top: 60px;
+                right: 15px;
+            }
+
             #settings-modal {
                 min-width: auto;
                 width: 90%;
@@ -572,6 +591,7 @@
         <button id="log-btn">☰</button>
         <div id="score">Score: <span id="score-value">0</span></div>
         <div id="stats"><span id="cps-value">0.00</span> chars/sec</div>
+        <div id="high-score">Best: <span id="high-score-value">0</span></div>
         <div id="game-over">
             <div>Game Over!</div>
             <div style="font-size: 20px; margin-top: 10px;">Final Score: <span id="final-score">0</span></div>
@@ -658,6 +678,7 @@
         const closeLogBtn = document.getElementById('close-log');
         const viewLogBtn = document.getElementById('view-log-btn');
         const meaningToast = document.getElementById('meaning-toast');
+        const highScoreValue = document.getElementById('high-score-value');
 
         // Word lists
         let allWords = [];
@@ -683,6 +704,104 @@
         let corpusPath = 'corpora/korean_idioms.txt';
         let wordLengthFilter = 'any';
         let zenMode = false;
+
+        // localStorage keys
+        const STORAGE_KEYS = {
+            settings: 'typtyp_settings',
+            highScores: 'typtyp_highscores'
+        };
+
+        // Load settings from localStorage
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEYS.settings);
+                if (saved) {
+                    const settings = JSON.parse(saved);
+
+                    // Apply saved settings
+                    if (settings.speedMultiplier !== undefined) {
+                        speedMultiplier = settings.speedMultiplier;
+                        speedSlider.value = speedMultiplier * 10;
+                        speedValue.textContent = speedMultiplier.toFixed(1) + 'x';
+                    }
+
+                    if (settings.corpusPath !== undefined) {
+                        corpusPath = settings.corpusPath;
+                        corpusSelect.value = corpusPath;
+                    }
+
+                    if (settings.wordLengthFilter !== undefined) {
+                        wordLengthFilter = settings.wordLengthFilter;
+                        lengthSelect.value = wordLengthFilter;
+                    }
+
+                    if (settings.zenMode !== undefined) {
+                        zenMode = settings.zenMode;
+                        zenModeCheckbox.checked = zenMode;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load settings:', e);
+            }
+        }
+
+        // Save settings to localStorage
+        function saveSettings() {
+            try {
+                const settings = {
+                    speedMultiplier,
+                    corpusPath,
+                    wordLengthFilter,
+                    zenMode
+                };
+                localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(settings));
+            } catch (e) {
+                console.warn('Failed to save settings:', e);
+            }
+        }
+
+        // Get high score key for current corpus
+        function getHighScoreKey() {
+            // Use corpus filename as key
+            return corpusPath.split('/').pop().replace('.txt', '');
+        }
+
+        // Load high score for current corpus
+        function loadHighScore() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEYS.highScores);
+                if (saved) {
+                    const highScores = JSON.parse(saved);
+                    const key = getHighScoreKey();
+                    const highScore = highScores[key] || 0;
+                    highScoreValue.textContent = highScore;
+                    return highScore;
+                }
+            } catch (e) {
+                console.warn('Failed to load high score:', e);
+            }
+            highScoreValue.textContent = '0';
+            return 0;
+        }
+
+        // Save high score for current corpus
+        function saveHighScore(newScore) {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEYS.highScores);
+                const highScores = saved ? JSON.parse(saved) : {};
+                const key = getHighScoreKey();
+
+                if (newScore > (highScores[key] || 0)) {
+                    highScores[key] = newScore;
+                    localStorage.setItem(STORAGE_KEYS.highScores, JSON.stringify(highScores));
+                    highScoreValue.textContent = newScore;
+                    return true; // New high score!
+                }
+            } catch (e) {
+                console.warn('Failed to save high score:', e);
+            }
+            return false;
+        }
 
         // Mobile viewport tracking
         let viewportHeight = window.innerHeight;
@@ -962,7 +1081,13 @@
             // Clear the meaning toast
             meaningToast.classList.remove('show');
 
+            // Check and save high score
+            const isNewHighScore = saveHighScore(score);
+
             finalScoreEl.textContent = score;
+            if (isNewHighScore && score > 0) {
+                finalScoreEl.textContent = score + ' (New Best!)';
+            }
             gameOverScreen.classList.add('show');
             wordInput.disabled = true;
         }
@@ -1051,20 +1176,25 @@
             // Map slider value (5-30) to speed multiplier (0.5-3.0)
             speedMultiplier = speedSlider.value / 10;
             speedValue.textContent = speedMultiplier.toFixed(1) + 'x';
+            saveSettings();
         }
 
         function updateLengthSetting() {
             wordLengthFilter = lengthSelect.value;
             updateFilteredWords();
+            saveSettings();
         }
 
         function updateZenMode() {
             zenMode = zenModeCheckbox.checked;
+            saveSettings();
         }
 
         function updateCorpusSetting() {
             corpusPath = corpusSelect.value;
+            saveSettings();
             loadWords();
+            loadHighScore(); // Load high score for new corpus
         }
 
         // Log functions
@@ -1179,7 +1309,22 @@
         }
         window.addEventListener('resize', updateViewportHeight);
 
-        // Load words and start the game
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.warn('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // Load settings and high score, then start game
+        loadSettings();
+        loadHighScore();
         loadWords(true);
     </script>
 </body>
